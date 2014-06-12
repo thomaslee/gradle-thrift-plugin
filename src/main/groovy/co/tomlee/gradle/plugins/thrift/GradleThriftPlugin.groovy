@@ -3,6 +3,7 @@ package co.tomlee.gradle.plugins.thrift
 import co.tomlee.gradle.plugins.thrift.tasks.ThriftCompile
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.SourceSet
 
 class GradleThriftPlugin implements Plugin<Project> {
 	@Override

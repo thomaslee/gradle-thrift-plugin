@@ -28,7 +28,7 @@ class ThriftCompile extends DefaultTask {
 		}
 		def p = command.execute()
 		if (project.logger.quietEnabled) {
-			p.consumeProcessOutput(System.out, System.err)
+			p.consumeProcessOutput()
 			p.waitFor()
 		}
 		else {
@@ -42,6 +42,10 @@ class ThriftCompile extends DefaultTask {
 	@OutputDirectories
 	def outputDirectories() {
 		return [out]
+	}
+
+	def out(File dir) {
+		out = dir
 	}
 
 	def path(File file) {

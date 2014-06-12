@@ -4,6 +4,10 @@
     apply plugin: 'idea'
     apply plugin: 'thrift'
 
+    ext {
+        thriftOutDir = file("src/main/gen-java")
+    }
+
     buildscript {
         repositories {
             mavenCentral()
@@ -14,8 +18,29 @@
         }
     }
 
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        //
+        // adjust for your Thrift version ...
+        //
+        compile 'org.apache.thrift:libthrift:0.9.1'
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDir thriftOutDir
+            }
+        }
+    }
+
     task compileThrift(type: ThriftCompile) {
         inputs.file file("src/main/thrift/example.thrift")
+
+        out thriftOutdir
 
         generators {
             java {
