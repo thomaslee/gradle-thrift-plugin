@@ -1,0 +1,102 @@
+// vim: ft=groovy:sw=4:ts=4:expandtab
+
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'idea'
+apply plugin: 'groovy'
+
+group = 'co.tomlee.gradle.plugins'
+version = '0.0.1'
+
+def getPomInfo() {
+    return {
+        name('gradle-thrift-plugin')
+        description('gradle-thrift-plugin')
+        url('http://github.com/thomaslee/gradle-thrift-plugin')
+        scm {
+            connection('scm:git://github.com/thomaslee/gradle-thrift-plugin')
+            developerConnection('scm:git@github.com:thomaslee/gradle-thrift-plugin')
+            url('http://github.com/thomaslee/gradle-thrift-plugin')
+        }
+        developers {
+            developer {
+                id('thomaslee')
+                name('Tom Lee')
+                email('github@tomlee.co')
+            }
+        }
+        licenses {
+            license {
+                name 'The MIT License (MIT)'
+                url 'http://opensource.org/licenses/MIT'
+                distribution' repo'
+            }
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'gradle-thrift-plugin',
+                    'Implementation-Version': version
+    }
+}
+
+configurations {
+    published.extendsFrom archives, signatures
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile gradleApi()
+    compile 'org.codehaus.groovy:groovy-all:1.8.0'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.10'
+}
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.groovy
+}
+
+task javadocJar(type: Jar, dependsOn: groovydoc) {
+    classifier = 'javadoc'
+    from fileTree(groovydoc.destinationDir)
+}
+
+artifacts {
+    archives javadocJar, sourceJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+            pom.project(pomInfo)
+        }
+    }
+}
+
+install {
+    repositories.mavenInstaller {
+        pom.project(pomInfo)
+    }
+}
+
+task dist(type: Zip) {
+    from jar.outputs.files
+    from sourceJar.outputs.files
+    from javadocJar.outputs.files
+}
