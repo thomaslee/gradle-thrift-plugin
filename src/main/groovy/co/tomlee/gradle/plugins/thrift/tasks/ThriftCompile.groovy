@@ -48,6 +48,22 @@ class ThriftCompile extends DefaultTask {
 		out = dir
 	}
 
+	def recurse(boolean recurse) {
+		this.recurse = recurse
+	}
+
+	def verbose(boolean verbose) {
+		this.verbose = verbose
+	}
+
+	def strict(boolean strict) {
+		this.strict = strict
+	}
+
+	def debug(boolean debug) {
+		this.debug = debug
+	}
+
 	def path(File file) {
 		include << file
 	}
