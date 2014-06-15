@@ -19,23 +19,24 @@ class ThriftCompile extends DefaultTask {
 
 	@TaskAction
 	def invokeThrift() {
-		def command = buildCommand()
-		project.logger.info(command.join(" "))
-		if (!out.isDirectory()) {
-			if (!out.mkdirs()) {
-				throw new GradleException("Could not create thrift output directory: ${out}")
+		inputs.files.each {
+			def command = buildCommand(it.absolutePath)
+			project.logger.info(command.join(" "))
+			if (!out.isDirectory()) {
+				if (!out.mkdirs()) {
+					throw new GradleException("Could not create thrift output directory: ${out}")
+				}
 			}
-		}
-		def p = command.execute()
-		if (project.logger.quietEnabled) {
-			p.consumeProcessOutput()
-			p.waitFor()
-		}
-		else {
-			p.waitForProcessOutput(System.out, System.err)
-		}
-		if (p.exitValue() != 0) {
-			throw new GradleException("${thriftExecutable()} command failed")
+			def p = command.execute()
+			if (project.logger.quietEnabled) {
+				p.consumeProcessOutput()
+				p.waitFor()
+			} else {
+				p.waitForProcessOutput(System.out, System.err)
+			}
+			if (p.exitValue() != 0) {
+				throw new GradleException("${thriftExecutable()} command failed")
+			}
 		}
 	}
 
@@ -76,7 +77,7 @@ class ThriftCompile extends DefaultTask {
 		return (this.thrift != null ? this.thrift : project.thrift.executable)
 	}
 
-	List<String> buildCommand() {
+	List<String> buildCommand(String fileName) {
 		def thrift = thriftExecutable()
 		def command = [thrift, "-out", out.absolutePath]
 		generators.each { Generator generator ->
@@ -93,7 +94,7 @@ class ThriftCompile extends DefaultTask {
 		if (verbose) command << "-verbose"
 		if (strict) command << "-strict"
 		if (debug) command << "-debug"
-		command << inputs.files.getSingleFile().absolutePath
+		command << fileName
 		command
 	}
 }
