@@ -1,15 +1,45 @@
 // vim: ft=groovy:sw=4:ts=4:expandtab
 
 apply plugin: 'maven'
-apply plugin: 'signing'
 apply plugin: 'idea'
 apply plugin: 'groovy'
+apply plugin: 'nexus'
+apply plugin: 'release'
 
 group = 'co.tomlee.gradle.plugins'
-version = '0.0.2'
 
-def getPomInfo() {
-    return {
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.gradle.api.plugins:gradle-nexus-plugin:0.3'
+        classpath 'co.tomlee.gradle.plugins:gradle-release-plugin:0.0.3'
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'gradle-thrift-plugin',
+                    'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile gradleApi()
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.10'
+}
+
+modifyPom {
+    project {
         name('gradle-thrift-plugin')
         description('gradle-thrift-plugin')
         url('http://github.com/thomaslee/gradle-thrift-plugin')
@@ -35,68 +65,7 @@ def getPomInfo() {
     }
 }
 
-jar {
-    manifest {
-        attributes 'Implementation-Title': 'gradle-thrift-plugin',
-                    'Implementation-Version': version
-    }
+nexus {
+    sign = true
 }
 
-configurations {
-    published.extendsFrom archives, signatures
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    compile gradleApi()
-    compile 'org.codehaus.groovy:groovy-all:1.8.0'
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.10'
-}
-
-task sourceJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.groovy
-}
-
-task javadocJar(type: Jar, dependsOn: groovydoc) {
-    classifier = 'javadoc'
-    from fileTree(groovydoc.destinationDir)
-}
-
-artifacts {
-    archives javadocJar, sourceJar
-}
-
-signing {
-    sign configurations.archives
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-            }
-            pom.project(pomInfo)
-        }
-    }
-}
-
-install {
-    repositories.mavenInstaller {
-        pom.project(pomInfo)
-    }
-}
-
-task dist(type: Zip) {
-    from jar.outputs.files
-    from sourceJar.outputs.files
-    from javadocJar.outputs.files
-}
