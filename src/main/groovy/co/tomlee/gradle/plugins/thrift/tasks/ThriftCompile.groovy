@@ -82,9 +82,7 @@ class ThriftCompile extends DefaultTask {
 		def command = [thrift, "-out", out.absolutePath]
 		generators.each { Generator generator ->
 			command << "--gen"
-			generator.options.each { String option ->
-				command << "${generator.name}:${option}"
-			}
+			command << generator.name + ":" + generator.options.join(",")
 		}
 		include.each { File file ->
 			command << "-I"
