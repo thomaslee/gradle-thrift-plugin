@@ -11,10 +11,11 @@ group = 'co.tomlee.gradle.plugins'
 buildscript {
     repositories {
         mavenCentral()
+        jcenter()
     }
 
     dependencies {
-        classpath 'org.gradle.api.plugins:gradle-nexus-plugin:0.3'
+        classpath 'org.gradle.api.plugins:gradle-nexus-plugin:0.7.1'
         classpath 'co.tomlee.gradle.plugins:gradle-release-plugin:0.0.3'
     }
 }
