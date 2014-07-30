@@ -10,7 +10,7 @@
         }
 
         dependencies {
-            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.2'
+            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.3'
         }
     }
 
@@ -27,5 +27,12 @@
 
     compileThrift {
         inputs.file file("src/main/thrift/example.thrift")
+
+        generators {
+            java {
+                option 'hashcode'
+                option 'beans'
+            }
+        }
     }
 
