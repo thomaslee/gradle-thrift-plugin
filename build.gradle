@@ -2,11 +2,14 @@
 
 apply plugin: 'maven'
 apply plugin: 'idea'
-apply plugin: 'groovy'
+apply plugin: 'java'
 apply plugin: 'nexus'
 apply plugin: 'release'
 
 group = 'co.tomlee.gradle.plugins'
+
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
 
 buildscript {
     repositories {
