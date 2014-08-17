@@ -10,7 +10,7 @@
         }
 
         dependencies {
-            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.3'
+            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.4'
         }
     }
 
@@ -25,9 +25,7 @@
         compile 'org.apache.thrift:libthrift:0.9.1'
     }
 
-    compileThrift {
-        inputs.file file("src/main/thrift/example.thrift")
-
+    generateThriftSource {
         generators {
             java {
                 option 'hashcode'
@@ -35,4 +33,11 @@
             }
         }
     }
+
+    //
+    // optional: add generated sources as a source directory in IDEA
+    //
+    idea.module.excludeDirs = []
+    idea.module.sourceDirs += file('build/generated-src/thrift/main')
+    idea.module.jdkName = '1.8'
 
