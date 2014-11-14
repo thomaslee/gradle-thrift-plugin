@@ -68,7 +68,7 @@ public class ThriftPlugin implements Plugin<Project> {
                 final String outputDirectoryName =
                         String.format("%s/generated-src/thrift/%s", project.getBuildDir(), sourceSet.getName());
                 final File outputDirectory = new File(outputDirectoryName);
-                thriftTask.setOutputDirectory(outputDirectory);
+                thriftTask.out(outputDirectory);
                 sourceSet.getJava().srcDir(outputDirectory);
 
                 //

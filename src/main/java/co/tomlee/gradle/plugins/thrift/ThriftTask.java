@@ -1,41 +1,57 @@
 package co.tomlee.gradle.plugins.thrift;
 
 import groovy.lang.Closure;
+import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.SourceTask;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
+import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
+import org.gradle.api.tasks.incremental.InputFileDetails;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 public class ThriftTask extends SourceTask {
     private String thrift;
+
     private NamedDomainObjectContainer<Generator> generators = getProject().container(Generator.class);
+
     private final ArrayList<File> include = new ArrayList<>();
+
     private SourceDirectorySet source;
+
     private File out = getProject().file("build/generated-src/thrift");
+
     private boolean recurse = true;
+
     private boolean verbose = false;
+
     private boolean strict = false;
+
     private boolean debug = false;
 
     @TaskAction
-    public void invokeThrift() throws Exception {
+    public void invokeThrift(final IncrementalTaskInputs inputs) throws Exception {
+        final ArrayList<File> inputFiles = new ArrayList<>();
+        if (inputs.isIncremental()) {
+            inputs.outOfDate(new Action<InputFileDetails>() {
+                @Override
+                public void execute(InputFileDetails inputFileDetails) {
+                    if (inputFileDetails.isAdded() || inputFileDetails.isModified()) {
+                        inputFiles.add(inputFileDetails.getFile());
+                    }
+                }
+            });
+        }
+        else {
+            inputFiles.addAll(getSource().getFiles());
+        }
+
         for (final Generator generator : generators) {
-            for (final File file : getSource().getFiles()) {
-                final File out;
-                if (generator.getOut() != null) {
-                    out = getProject().file(generator.getOut());
-                }
-                else {
-                    out = this.out;
-                }
+            for (final File file : inputFiles) {
+                final File out = generatorOutputDirectory(generator);
 
                 final List<String> command = buildCommand(generator, out, file.getAbsolutePath());
                 getProject().getLogger().info("Running thrift: " + command);
@@ -45,34 +61,76 @@ public class ThriftTask extends SourceTask {
                     }
                 }
                 final CountDownLatch latch = new CountDownLatch(2);
-                final Process p = new ProcessBuilder(command)
-                        .start();
-                new SlurpThread(latch, p.getInputStream(), System.out).start();
-                new SlurpThread(latch, p.getErrorStream(), System.err).start();
 
-                if (p.waitFor() != 0) {
-                    throw new GradleException(thriftExecutable() + " command failed");
+                try {
+                    final Process p = new ProcessBuilder(command).start();
+                    new SlurpThread(latch, p.getInputStream(), System.out).start();
+                    new SlurpThread(latch, p.getErrorStream(), System.err).start();
+
+                    if (p.waitFor() != 0) {
+                        throw new GradleException(thriftExecutable() + " command failed");
+                    }
+                    latch.await();
+                } catch (GradleException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new GradleException("Unexpected error while executing thrift: " + e.getMessage(), e);
                 }
-                latch.await();
             }
         }
     }
 
-    public void setOutputDirectory(final File outputDirectory) {
-        this.out = outputDirectory;
-    }
-
-    @OutputDirectory
-    public File getOutputDirectory() {
-        return out;
+    @OutputDirectories
+    public Set<File> getOutputDirectories() {
+        final HashSet<File> files = new HashSet<>();
+        boolean useSharedOutputDir = false;
+        for (final Generator generator : generators) {
+            useSharedOutputDir |= generator.getOut() == null;
+            files.add(generatorOutputDirectory(generator));
+        }
+        if (useSharedOutputDir) {
+            files.add(this.out);
+        }
+        return files;
     }
 
     public void setSource(final SourceDirectorySet sourceDirectorySet) {
         this.source = sourceDirectorySet;
     }
 
+    @InputFiles
     public SourceDirectorySet getSource() {
         return source;
+    }
+
+    @Input
+    public Map<String, Generator> getGenerators() {
+        return generators.getAsMap();
+    }
+
+    @Input
+    public List<File> getInclude() {
+        return include;
+    }
+
+    @Input
+    public boolean isRecurse() {
+        return recurse;
+    }
+
+    @Input
+    public boolean isVerbose() {
+        return verbose;
+    }
+
+    @Input
+    public boolean isStrict() {
+        return strict;
+    }
+
+    @Input
+    public boolean isDebug() {
+        return debug;
     }
 
     public void out(Object dir) {
@@ -103,6 +161,7 @@ public class ThriftTask extends SourceTask {
         generators.configure(c);
     }
 
+    @Input
     public String thriftExecutable() {
         return this.thrift != null ? this.thrift : "thrift";
     }
@@ -135,12 +194,23 @@ public class ThriftTask extends SourceTask {
         return sb.toString();
     }
 
+    private File generatorOutputDirectory(final Generator generator) {
+        if (generator.getOut() != null) {
+            return getProject().file(generator.getOut());
+        }
+        else {
+            return this.out;
+        }
+    }
+
     private final class SlurpThread extends Thread {
         private final CountDownLatch latch;
         private final InputStream in;
         private final PrintStream out;
 
         public SlurpThread(final CountDownLatch latch, final InputStream in, final PrintStream out) {
+            setDaemon(true);
+
             this.latch = latch;
             this.in = in;
             this.out = out;
