@@ -25,28 +25,36 @@ public class ThriftTask extends SourceTask {
     private boolean strict = false;
     private boolean debug = false;
 
-
     @TaskAction
     public void invokeThrift() throws Exception {
-        for (final File file : getSource().getFiles()) {
-            final List<String> command = buildCommand(file.getAbsolutePath());
-            getProject().getLogger().info("Running thrift: " + command);
-            if (!out.isDirectory()) {
-                if (!out.mkdirs()) {
-                    throw new GradleException("Could not create thrift output directory: " + out);
+        for (final Generator generator : generators) {
+            for (final File file : getSource().getFiles()) {
+                final File out;
+                if (generator.getOut() != null) {
+                    out = getProject().file(generator.getOut());
                 }
-            }
-            final CountDownLatch latch = new CountDownLatch(2);
-            final Process p = new ProcessBuilder(command)
-                    .start();
-            new SlurpThread(latch, p.getInputStream(), System.out).start();
-            new SlurpThread(latch, p.getErrorStream(), System.err).start();
+                else {
+                    out = this.out;
+                }
 
-            if (p.waitFor() != 0) {
-                latch.countDown();
-                throw new GradleException(thriftExecutable() + " command failed");
+                final List<String> command = buildCommand(generator, out, file.getAbsolutePath());
+                getProject().getLogger().info("Running thrift: " + command);
+                if (!out.isDirectory()) {
+                    if (!out.mkdirs()) {
+                        throw new GradleException("Could not create thrift output directory: " + out);
+                    }
+                }
+                final CountDownLatch latch = new CountDownLatch(2);
+                final Process p = new ProcessBuilder(command)
+                        .start();
+                new SlurpThread(latch, p.getInputStream(), System.out).start();
+                new SlurpThread(latch, p.getErrorStream(), System.err).start();
+
+                if (p.waitFor() != 0) {
+                    throw new GradleException(thriftExecutable() + " command failed");
+                }
+                latch.await();
             }
-            latch.await();
         }
     }
 
@@ -67,8 +75,8 @@ public class ThriftTask extends SourceTask {
         return source;
     }
 
-    public void out(File dir) {
-        this.out = dir;
+    public void out(Object dir) {
+        this.out = getProject().file(dir);
     }
 
     public void recurse(boolean recurse) {
@@ -87,8 +95,8 @@ public class ThriftTask extends SourceTask {
         this.debug = debug;
     }
 
-    public void path(File file) {
-        include.add(file);
+    public void path(Object file) {
+        include.add(getProject().file(file));
     }
 
     public void generators(Closure c) {
@@ -99,13 +107,11 @@ public class ThriftTask extends SourceTask {
         return this.thrift != null ? this.thrift : "thrift";
     }
 
-    public List<String> buildCommand(String fileName) {
+    public List<String> buildCommand(final Generator generator, File out, String fileName) {
         final String thrift = thriftExecutable();
         final List<String> command = new ArrayList<>(Arrays.asList(thrift, "-out", out.getAbsolutePath()));
-        for (final Generator generator : generators) {
-            command.add("--gen");
-            command.add(generator.getName() + ":" + join(",", generator.getOptions()));
-        }
+        command.add("--gen");
+        command.add(generator.getName() + ":" + join(",", generator.getOptions()));
         for (final File include : this.include) {
             command.add("-I");
             command.add(include.getAbsolutePath());
