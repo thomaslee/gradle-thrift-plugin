@@ -1,5 +1,9 @@
 # gradle-thrift-plugin
 
+Put your thrift files in `src/main/thrift`.
+
+Configuration example:
+
     apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'thrift'
