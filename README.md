@@ -26,10 +26,43 @@
     }
 
     generateThriftSource {
+        //
+        // The output directory (optional)
+        //
+        out file('build/generated-src/thrift/main')
+
+        //
+        // -verbose / -debug / -strict (all optional)
+        //
+        verbose false
+        debug false
+        strict false
+
+        //
+        // Modify the include path (optional)
+        //
+        path file('vendor/thrift')
+
         generators {
+            //
+            // --gen java:hashcode,beans
+            //
             java {
+                //
+                // Options passed to the `java` generator
+                //
                 option 'hashcode'
                 option 'beans'
+            }
+
+            //
+            // --gen go
+            //
+            go {
+                //
+                // Output directory can be set on a per-generator basis too
+                //
+                out file('build/generated-src/thrift/go-main')
             }
         }
     }
