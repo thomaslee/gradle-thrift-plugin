@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 public class ThriftTask extends SourceTask {
-    private String thrift;
+    private File thrift;
 
     private NamedDomainObjectContainer<Generator> generators = getProject().container(Generator.class);
 
@@ -68,7 +68,7 @@ public class ThriftTask extends SourceTask {
                     new SlurpThread(latch, p.getErrorStream(), System.err).start();
 
                     if (p.waitFor() != 0) {
-                        throw new GradleException(thriftExecutable() + " command failed");
+                        throw new GradleException(executable() + " command failed");
                     }
                     latch.await();
                 } catch (GradleException e) {
@@ -132,6 +132,11 @@ public class ThriftTask extends SourceTask {
     public boolean isDebug() {
         return debug;
     }
+    
+    @Input
+    public String executable() {
+        return this.thrift != null ? this.thrift.getAbsolutePath() : "thrift";
+    }
 
     public void out(Object dir) {
         this.out = getProject().file(dir);
@@ -161,13 +166,12 @@ public class ThriftTask extends SourceTask {
         generators.configure(c);
     }
 
-    @Input
-    public String thriftExecutable() {
-        return this.thrift != null ? this.thrift : "thrift";
+    public void executable(final Object executable) {
+        this.thrift = getProject().file(executable);
     }
 
     public List<String> buildCommand(final Generator generator, File out, String fileName) {
-        final String thrift = thriftExecutable();
+        final String thrift = executable();
         final List<String> command = new ArrayList<>(Arrays.asList(thrift, "-out", out.getAbsolutePath()));
         command.add("--gen");
         command.add(generator.getName() + ":" + join(",", generator.getOptions()));
