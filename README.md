@@ -14,7 +14,7 @@ Configuration example:
         }
 
         dependencies {
-            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.4'
+            classpath 'co.tomlee.gradle.plugins:gradle-thrift-plugin:0.0.6'
         }
     }
 
@@ -46,6 +46,11 @@ Configuration example:
         // Modify the include path (optional)
         //
         path file('vendor/thrift')
+
+        //
+        // Set the thrift executable (optional)
+        //
+        executable '/usr/bin/thrift'
 
         generators {
             //
