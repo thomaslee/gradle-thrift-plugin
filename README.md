@@ -73,6 +73,20 @@ Configuration example:
                 //
                 out file('build/generated-src/thrift/go-main')
             }
+
+            //
+            // --gen js
+            //
+            js {
+                out file('build/generated-src/thrift/js')
+            }
+
+            //
+            // --gen js:node
+            //
+            'js:node' {
+                out file('build/generated-src/thrift/node')
+            }
         }
     }
 

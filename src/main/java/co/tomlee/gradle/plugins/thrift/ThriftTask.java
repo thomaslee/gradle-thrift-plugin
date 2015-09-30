@@ -132,7 +132,7 @@ public class ThriftTask extends SourceTask {
     public boolean isDebug() {
         return debug;
     }
-    
+
     @Input
     public String executable() {
         return this.thrift != null ? this.thrift.getAbsolutePath() : "thrift";
@@ -173,8 +173,11 @@ public class ThriftTask extends SourceTask {
     public List<String> buildCommand(final Generator generator, File out, String fileName) {
         final String thrift = executable();
         final List<String> command = new ArrayList<>(Arrays.asList(thrift, "-out", out.getAbsolutePath()));
+        final List<String> options = generator.getOptions();
+        final String arguments = options.isEmpty() ? "" : ":" + join(",", options);
+
         command.add("--gen");
-        command.add(generator.getName() + ":" + join(",", generator.getOptions()));
+        command.add(generator.getName() + arguments));
         for (final File include : this.include) {
             command.add("-I");
             command.add(include.getAbsolutePath());
